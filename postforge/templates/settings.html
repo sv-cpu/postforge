@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="settings-page">
+    <div class="page-header" style="padding: 0 0 20px 0; border: none;">
+        <h1>⚙ Настройки</h1>
+    </div>
+
+    <div class="settings-group">
+        <label for="api-key-input">🔑 API Ключ OpenRouter</label>
+        <input id="api-key-input" class="form-input" type="password" placeholder="sk-or-v1-..." value="{{ api_key }}">
+    </div>
+
+    <div class="settings-group">
+        <label for="model-select">🤖 Модель по умолчанию</label>
+        <select id="model-select" class="form-select">
+            <option value="openai/gpt-4o-mini" {% if model == 'openai/gpt-4o-mini' %}selected{% endif %}>GPT-4o Mini</option>
+            <option value="openai/gpt-4o" {% if model == 'openai/gpt-4o' %}selected{% endif %}>GPT-4o</option>
+            <option value="anthropic/claude-3.5-sonnet" {% if model == 'anthropic/claude-3.5-sonnet' %}selected{% endif %}>Claude 3.5 Sonnet</option>
+            <option value="google/gemini-2.0-flash-001" {% if model == 'google/gemini-2.0-flash-001' %}selected{% endif %}>Gemini 2.0 Flash</option>
+            <option value="meta-llama/llama-3.3-70b-instruct" {% if model == 'meta-llama/llama-3.3-70b-instruct' %}selected{% endif %}>Llama 3.3 70B</option>
+            <option value="deepseek/deepseek-chat" {% if model == 'deepseek/deepseek-chat' %}selected{% endif %}>DeepSeek V3</option>
+        </select>
+    </div>
+
+    <button id="save-settings-btn" class="btn btn-primary">💾 Сохранить настройки</button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/settings.js"></script>
+{% endblock %}

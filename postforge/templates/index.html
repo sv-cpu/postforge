@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="generator-layout">
+    <div class="generator-left">
+        <div class="form-group">
+            <label class="form-label" for="url-input">🔗 Ссылка</label>
+            <input id="url-input" class="form-input" type="url" placeholder="https://example.com/article" autofocus>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">🎯 Тон поста</label>
+            <div class="radio-group">
+                <label class="radio-item">
+                    <input type="radio" name="tone" value="expert">
+                    <span class="radio-item-label">Экспертный</span>
+                </label>
+                <label class="radio-item">
+                    <input type="radio" name="tone" value="friendly" checked>
+                    <span class="radio-item-label">Дружелюбный</span>
+                </label>
+                <label class="radio-item">
+                    <input type="radio" name="tone" value="brief">
+                    <span class="radio-item-label">Краткий</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="model-select">🤖 Модель</label>
+            <select id="model-select" class="form-select">
+                <option value="openai/gpt-4o-mini" {% if model == 'openai/gpt-4o-mini' %}selected{% endif %}>GPT-4o Mini</option>
+                <option value="openai/gpt-4o" {% if model == 'openai/gpt-4o' %}selected{% endif %}>GPT-4o</option>
+                <option value="anthropic/claude-3.5-sonnet" {% if model == 'anthropic/claude-3.5-sonnet' %}selected{% endif %}>Claude 3.5 Sonnet</option>
+                <option value="google/gemini-2.0-flash-001" {% if model == 'google/gemini-2.0-flash-001' %}selected{% endif %}>Gemini 2.0 Flash</option>
+                <option value="meta-llama/llama-3.3-70b-instruct" {% if model == 'meta-llama/llama-3.3-70b-instruct' %}selected{% endif %}>Llama 3.3 70B</option>
+                <option value="deepseek/deepseek-chat" {% if model == 'deepseek/deepseek-chat' %}selected{% endif %}>DeepSeek V3</option>
+            </select>
+        </div>
+
+        <button id="generate-btn" class="btn btn-primary">
+            🚀 Сгенерировать
+        </button>
+    </div>
+
+    <div class="generator-right">
+        <div class="post-output">
+            <div id="post-content" class="post-content empty">
+                Вставьте ссылку и нажмите «Сгенерировать»
+            </div>
+        </div>
+        <div id="post-actions" class="btn-group" style="display:none;">
+            <button id="copy-btn" class="btn btn-secondary btn-sm">📋 Копировать</button>
+            <button id="share-btn" class="btn btn-secondary btn-sm">🔗 Поделиться</button>
+            <button id="save-btn" class="btn btn-secondary btn-sm">💾 Сохранить</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/generator.js"></script>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h1>🗂 Архив постов</h1>
+</div>
+<div id="archive-list" class="archive-list">
+    <div class="archive-empty">Загрузка...</div>
+</div>
+
+<!-- Modal -->
+<div id="view-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h3 id="modal-title">Пост</h3>
+        <div id="modal-text" class="modal-text"></div>
+        <button id="modal-close-btn" class="btn btn-secondary btn-sm">Закрыть</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/archive.js"></script>
+{% endblock %}
