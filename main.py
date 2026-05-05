@@ -4,17 +4,24 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+from jinja2 import Environment, FileSystemLoader
 
 from database import init_db, SessionLocal, get_settings, SavedPost
 from services.parser import parse_url
 from services.openrouter import generate_post
 
-app = FastAPI(title="PostForge")
-
 BASE_DIR = Path(__file__).resolve().parent
+
+app = FastAPI(title="PostForge")
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+jinja_env = Environment(loader=FileSystemLoader(str(BASE_DIR / "templates")))
+
+
+def render(name: str, **ctx):
+    tpl = jinja_env.get_template(name)
+    content = tpl.render(**ctx)
+    return HTMLResponse(content)
 
 
 def db_session():
@@ -38,15 +45,12 @@ async def index_page(request: Request):
     s = next(db_session())
     settings = get_settings(s)
     s.close()
-    return templates.TemplateResponse(
-        "index.html",
-        {"request": request, "model": settings.model},
-    )
+    return render("index.html", request=request, model=settings.model)
 
 
 @app.get("/archive", response_class=HTMLResponse)
 async def archive_page(request: Request):
-    return templates.TemplateResponse("archive.html", {"request": request})
+    return render("archive.html", request=request)
 
 
 @app.get("/settings", response_class=HTMLResponse)
@@ -54,9 +58,11 @@ async def settings_page(request: Request):
     s = next(db_session())
     settings = get_settings(s)
     s.close()
-    return templates.TemplateResponse(
+    return render(
         "settings.html",
-        {"request": request, "api_key": settings.api_key, "model": settings.model},
+        request=request,
+        api_key=settings.api_key,
+        model=settings.model,
     )
 
 
