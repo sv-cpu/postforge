@@ -1,12 +1,12 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.orm import declarative_base
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
+from sqlalchemy.orm import sessionmaker, declarative_base
 from datetime import datetime, timezone
 
 from config import DATABASE_URL
 
-engine = create_async_engine(DATABASE_URL, echo=False)
-async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+sync_url = DATABASE_URL.replace("sqlite+aiosqlite://", "sqlite://")
+engine = create_engine(sync_url, echo=False)
+SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
 
@@ -29,20 +29,22 @@ class SavedPost(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
-async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    async with async_session() as session:
-        result = await session.get(Settings, 1)
-        if result is None:
+def init_db():
+    Base.metadata.create_all(engine)
+    session = SessionLocal()
+    try:
+        settings = session.get(Settings, 1)
+        if settings is None:
             session.add(Settings(id=1))
-            await session.commit()
+            session.commit()
+    finally:
+        session.close()
 
 
-async def get_settings(session: AsyncSession) -> Settings:
-    settings = await session.get(Settings, 1)
+def get_settings(session) -> Settings:
+    settings = session.get(Settings, 1)
     if settings is None:
         settings = Settings(id=1)
         session.add(settings)
-        await session.commit()
+        session.commit()
     return settings

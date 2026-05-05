@@ -1,15 +1,12 @@
-import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from database import init_db, async_session, get_settings, Settings, SavedPost
+from database import init_db, SessionLocal, get_settings, Settings, SavedPost
 from services.parser import parse_url
 from services.openrouter import generate_post
 
@@ -20,22 +17,27 @@ app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="stat
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 
-async def get_session():
-    async with async_session() as session:
+def get_session():
+    session = SessionLocal()
+    try:
         yield session
+    finally:
+        session.close()
 
 
 @app.on_event("startup")
-async def startup():
-    await init_db()
+def startup():
+    init_db()
 
 
 # --- Pages ---
 
 
 @app.get("/", response_class=HTMLResponse)
-async def index_page(request: Request, session: AsyncSession = Depends(get_session)):
-    settings = await get_settings(session)
+async def index_page(request: Request):
+    session = next(get_session())
+    with session:
+        settings = get_settings(session)
     return templates.TemplateResponse(
         "index.html",
         {"request": request, "model": settings.model},
@@ -48,8 +50,10 @@ async def archive_page(request: Request):
 
 
 @app.get("/settings", response_class=HTMLResponse)
-async def settings_page(request: Request, session: AsyncSession = Depends(get_session)):
-    settings = await get_settings(session)
+async def settings_page(request: Request):
+    session = next(get_session())
+    with session:
+        settings = get_settings(session)
     return templates.TemplateResponse(
         "settings.html",
         {"request": request, "api_key": settings.api_key, "model": settings.model},
@@ -60,7 +64,7 @@ async def settings_page(request: Request, session: AsyncSession = Depends(get_se
 
 
 @app.post("/api/generate")
-async def api_generate(request: Request, session: AsyncSession = Depends(get_session)):
+async def api_generate(request: Request):
     body = await request.json()
     url = body.get("url", "").strip()
     tone = body.get("tone", "friendly")
@@ -69,8 +73,11 @@ async def api_generate(request: Request, session: AsyncSession = Depends(get_ses
     if not url:
         return JSONResponse({"error": "URL обязателен"}, status_code=400)
 
-    settings = await get_settings(session)
-    api_key = settings.api_key
+    session = next(get_session())
+    with session:
+        settings = get_settings(session)
+        api_key = settings.api_key
+
     if not api_key:
         return JSONResponse({"error": "API ключ не настроен"}, status_code=400)
 
@@ -90,11 +97,10 @@ async def api_generate(request: Request, session: AsyncSession = Depends(get_ses
 
 
 @app.get("/api/archive")
-async def api_archive_list(session: AsyncSession = Depends(get_session)):
-    result = await session.execute(
-        select(SavedPost).order_by(SavedPost.created_at.desc())
-    )
-    posts = result.scalars().all()
+async def api_archive_list():
+    session = next(get_session())
+    with session:
+        posts = session.query(SavedPost).order_by(SavedPost.created_at.desc()).all()
     return [
         {
             "id": p.id,
@@ -109,49 +115,52 @@ async def api_archive_list(session: AsyncSession = Depends(get_session)):
 
 
 @app.post("/api/archive")
-async def api_archive_save(
-    request: Request, session: AsyncSession = Depends(get_session)
-):
+async def api_archive_save(request: Request):
     body = await request.json()
-    post = SavedPost(
-        original_url=body.get("original_url", ""),
-        tone=body.get("tone", "friendly"),
-        model=body.get("model", ""),
-        content=body.get("content", ""),
-        created_at=datetime.now(timezone.utc),
-    )
-    session.add(post)
-    await session.commit()
-    return {"id": post.id}
+    session = next(get_session())
+    with session:
+        post = SavedPost(
+            original_url=body.get("original_url", ""),
+            tone=body.get("tone", "friendly"),
+            model=body.get("model", ""),
+            content=body.get("content", ""),
+            created_at=datetime.now(timezone.utc),
+        )
+        session.add(post)
+        session.commit()
+        post_id = post.id
+    return {"id": post_id}
 
 
 @app.delete("/api/archive/{post_id}")
-async def api_archive_delete(
-    post_id: int, session: AsyncSession = Depends(get_session)
-):
-    post = await session.get(SavedPost, post_id)
-    if not post:
-        return JSONResponse({"error": "Пост не найден"}, status_code=404)
-    await session.delete(post)
-    await session.commit()
+async def api_archive_delete(post_id: int):
+    session = next(get_session())
+    with session:
+        post = session.get(SavedPost, post_id)
+        if not post:
+            return JSONResponse({"error": "Пост не найден"}, status_code=404)
+        session.delete(post)
+        session.commit()
     return {"ok": True}
 
 
 @app.get("/api/settings")
-async def api_settings_get(session: AsyncSession = Depends(get_session)):
-    settings = await get_settings(session)
+async def api_settings_get():
+    session = next(get_session())
+    with session:
+        settings = get_settings(session)
     return {"api_key": settings.api_key, "model": settings.model}
 
 
 @app.put("/api/settings")
-async def api_settings_update(
-    request: Request, session: AsyncSession = Depends(get_session)
-):
+async def api_settings_update(request: Request):
     body = await request.json()
-    settings = await get_settings(session)
-    if "api_key" in body:
-        settings.api_key = body["api_key"]
-    if "model" in body:
-        settings.model = body["model"]
-    await session.commit()
+    session = next(get_session())
+    with session:
+        settings = get_settings(session)
+        if "api_key" in body:
+            settings.api_key = body["api_key"]
+        if "model" in body:
+            settings.model = body["model"]
+        session.commit()
     return {"ok": True}
