@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from database import init_db, SessionLocal, get_settings, Settings, SavedPost
+from database import init_db, SessionLocal, get_settings, SavedPost
 from services.parser import parse_url
 from services.openrouter import generate_post
 
@@ -17,12 +17,12 @@ app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="stat
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 
-def get_session():
-    session = SessionLocal()
+def db_session():
+    s = SessionLocal()
     try:
-        yield session
+        yield s
     finally:
-        session.close()
+        s.close()
 
 
 @app.on_event("startup")
@@ -35,9 +35,9 @@ def startup():
 
 @app.get("/", response_class=HTMLResponse)
 async def index_page(request: Request):
-    session = next(get_session())
-    with session:
-        settings = get_settings(session)
+    s = next(db_session())
+    settings = get_settings(s)
+    s.close()
     return templates.TemplateResponse(
         "index.html",
         {"request": request, "model": settings.model},
@@ -51,9 +51,9 @@ async def archive_page(request: Request):
 
 @app.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request):
-    session = next(get_session())
-    with session:
-        settings = get_settings(session)
+    s = next(db_session())
+    settings = get_settings(s)
+    s.close()
     return templates.TemplateResponse(
         "settings.html",
         {"request": request, "api_key": settings.api_key, "model": settings.model},
@@ -73,15 +73,16 @@ async def api_generate(request: Request):
     if not url:
         return JSONResponse({"error": "URL обязателен"}, status_code=400)
 
-    session = next(get_session())
-    with session:
-        settings = get_settings(session)
-        api_key = settings.api_key
+    s = next(db_session())
+    settings = get_settings(s)
+    api_key = settings.api_key
+    default_model = settings.model
+    s.close()
 
     if not api_key:
         return JSONResponse({"error": "API ключ не настроен"}, status_code=400)
 
-    model = model or settings.model or "openai/gpt-4o-mini"
+    model = model or default_model or "openai/gpt-4o-mini"
 
     try:
         page_content = await parse_url(url)
@@ -98,9 +99,9 @@ async def api_generate(request: Request):
 
 @app.get("/api/archive")
 async def api_archive_list():
-    session = next(get_session())
-    with session:
-        posts = session.query(SavedPost).order_by(SavedPost.created_at.desc()).all()
+    s = next(db_session())
+    posts = s.query(SavedPost).order_by(SavedPost.created_at.desc()).all()
+    s.close()
     return [
         {
             "id": p.id,
@@ -117,50 +118,51 @@ async def api_archive_list():
 @app.post("/api/archive")
 async def api_archive_save(request: Request):
     body = await request.json()
-    session = next(get_session())
-    with session:
-        post = SavedPost(
-            original_url=body.get("original_url", ""),
-            tone=body.get("tone", "friendly"),
-            model=body.get("model", ""),
-            content=body.get("content", ""),
-            created_at=datetime.now(timezone.utc),
-        )
-        session.add(post)
-        session.commit()
-        post_id = post.id
+    s = next(db_session())
+    post = SavedPost(
+        original_url=body.get("original_url", ""),
+        tone=body.get("tone", "friendly"),
+        model=body.get("model", ""),
+        content=body.get("content", ""),
+        created_at=datetime.now(timezone.utc),
+    )
+    s.add(post)
+    s.commit()
+    post_id = post.id
+    s.close()
     return {"id": post_id}
 
 
 @app.delete("/api/archive/{post_id}")
 async def api_archive_delete(post_id: int):
-    session = next(get_session())
-    with session:
-        post = session.get(SavedPost, post_id)
-        if not post:
-            return JSONResponse({"error": "Пост не найден"}, status_code=404)
-        session.delete(post)
-        session.commit()
+    s = next(db_session())
+    post = s.get(SavedPost, post_id)
+    if not post:
+        s.close()
+        return JSONResponse({"error": "Пост не найден"}, status_code=404)
+    s.delete(post)
+    s.commit()
+    s.close()
     return {"ok": True}
 
 
 @app.get("/api/settings")
 async def api_settings_get():
-    session = next(get_session())
-    with session:
-        settings = get_settings(session)
+    s = next(db_session())
+    settings = get_settings(s)
+    s.close()
     return {"api_key": settings.api_key, "model": settings.model}
 
 
 @app.put("/api/settings")
 async def api_settings_update(request: Request):
     body = await request.json()
-    session = next(get_session())
-    with session:
-        settings = get_settings(session)
-        if "api_key" in body:
-            settings.api_key = body["api_key"]
-        if "model" in body:
-            settings.model = body["model"]
-        session.commit()
+    s = next(db_session())
+    settings = get_settings(s)
+    if "api_key" in body:
+        settings.api_key = body["api_key"]
+    if "model" in body:
+        settings.model = body["model"]
+    s.commit()
+    s.close()
     return {"ok": True}
