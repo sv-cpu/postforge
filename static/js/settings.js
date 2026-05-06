@@ -42,8 +42,12 @@ async function loadVkSettings() {
             } else {
                 vkStatus.innerHTML = '❌ <span style="color:var(--text-muted);">Сообщество не выбрано</span>';
             }
+        } else {
+            const err = await resp.json();
+            console.log('VK settings load error:', err);
         }
-    } catch {
+    } catch (e) {
+        console.log('VK settings load exception:', e);
         vkStatus.innerHTML = '❌ <span style="color:var(--text-muted);">Ошибка загрузки</span>';
     }
 }
