@@ -111,3 +111,80 @@ saveBtn.addEventListener('click', async () => {
         showToast('Ошибка сохранения');
     }
 });
+
+const vkPostBtn = document.getElementById('vk-post-btn');
+
+vkPostBtn.addEventListener('click', async () => {
+    if (!currentPost) return;
+    try {
+        const resp = await fetch('/api/vk/groups');
+        if (!resp.ok) {
+            const data = await resp.json();
+            showToast(data.error || 'ВК не подключен');
+            return;
+        }
+        const groups = await resp.json();
+        if (!groups.length) {
+            showToast('Нет доступных сообществ');
+            return;
+        }
+        showVkGroupSelect(groups);
+    } catch {
+        showToast('Ошибка получения групп');
+    }
+});
+
+function showVkGroupSelect(groups) {
+    let html = '<div class="modal-overlay open" id="vk-modal">';
+    html += '<div class="modal-content">';
+    html += '<h3>Выберите сообщество</h3>';
+    html += '<select id="vk-group-select" class="form-select" style="margin:12px 0;">';
+    groups.forEach(g => {
+        html += `<option value="${g.id}">${g.name} (ID: ${g.id})</option>`;
+    });
+    html += '</select>';
+    html += '<div class="btn-group">';
+    html += '<button id="vk-post-confirm" class="btn btn-primary btn-sm">Опубликовать</button>';
+    html += '<button id="vk-modal-close" class="btn btn-secondary btn-sm">Отмена</button>';
+    html += '</div></div></div>';
+
+    document.body.insertAdjacentHTML('beforeend', html);
+
+    document.getElementById('vk-post-confirm').addEventListener('click', async () => {
+        const ownerId = document.getElementById('vk-group-select').value;
+        const btn = document.getElementById('vk-post-confirm');
+        btn.disabled = true;
+        btn.textContent = 'Публикация...';
+
+        try {
+            const resp = await fetch('/api/vk/post', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    owner_id: -Math.abs(ownerId),
+                    message: currentPost,
+                    link: currentUrl,
+                }),
+            });
+            if (resp.ok) {
+                showToast('Опубликовано в ВК!');
+            } else {
+                const data = await resp.json();
+                showToast(data.error || 'Ошибка публикации');
+            }
+        } catch {
+            showToast('Ошибка публикации');
+        }
+        document.getElementById('vk-modal').remove();
+    });
+
+    document.getElementById('vk-modal-close').addEventListener('click', () => {
+        document.getElementById('vk-modal').remove();
+    });
+
+    document.getElementById('vk-modal').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) {
+            document.getElementById('vk-modal').remove();
+        }
+    });
+}

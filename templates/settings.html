@@ -5,6 +5,8 @@
         <h1>⚙ Настройки</h1>
     </div>
 
+    <h2 style="color:var(--text-secondary); font-size:16px; margin-bottom:16px;">OpenRouter</h2>
+
     <div class="settings-group">
         <label for="api-key-input">🔑 API Ключ OpenRouter</label>
         <input id="api-key-input" class="form-input" type="password" placeholder="sk-or-v1-..." value="{{ api_key }}">
@@ -22,7 +24,28 @@
         </select>
     </div>
 
-    <button id="save-settings-btn" class="btn btn-primary">💾 Сохранить настройки</button>
+    <button id="save-settings-btn" class="btn btn-primary">💾 Сохранить настройки OpenRouter</button>
+
+    <hr style="border-color:var(--border); margin:32px 0;">
+
+    <h2 style="color:var(--text-secondary); font-size:16px; margin-bottom:16px;">ВКонтакте</h2>
+
+    <div class="settings-group">
+        <label for="vk-client-id">Client ID (App ID)</label>
+        <input id="vk-client-id" class="form-input" type="text" placeholder="123456">
+    </div>
+
+    <div class="settings-group">
+        <label for="vk-client-secret">Client Secret</label>
+        <input id="vk-client-secret" class="form-input" type="password" placeholder="xxxxxxxxxxxxxxxx">
+    </div>
+
+    <div id="vk-status" style="margin-bottom:16px; font-size:14px;"></div>
+
+    <div class="btn-group">
+        <button id="save-vk-btn" class="btn btn-primary">💾 Сохранить VK</button>
+        <button id="connect-vk-btn" class="btn btn-secondary">🔗 Подключить ВК</button>
+    </div>
 </div>
 {% endblock %}
 

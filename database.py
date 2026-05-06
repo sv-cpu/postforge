@@ -29,6 +29,16 @@ class SavedPost(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
+class VKSettings(Base):
+    __tablename__ = "vk_settings"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    client_id = Column(String(128), default="")
+    client_secret = Column(String(256), default="")
+    access_token = Column(String(512), default="")
+    token_expires = Column(DateTime, nullable=True)
+
+
 def init_db():
     Base.metadata.create_all(engine)
     session = SessionLocal()
@@ -48,3 +58,12 @@ def get_settings(session) -> Settings:
         session.add(settings)
         session.commit()
     return settings
+
+
+def get_vk_settings(session) -> VKSettings:
+    vk = session.query(VKSettings).first()
+    if vk is None:
+        vk = VKSettings()
+        session.add(vk)
+        session.commit()
+    return vk
