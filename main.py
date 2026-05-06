@@ -189,6 +189,7 @@ async def vk_settings_update(request: Request):
         vk.api_key = body["api_key"]
     if "selected_group_id" in body:
         vk.selected_group_id = str(body["selected_group_id"])
+        print(f"Saving selected_group_id: {vk.selected_group_id}")
     s.commit()
     s.close()
     return {"ok": True}
@@ -199,6 +200,7 @@ async def vk_settings_get():
     s = next(db_session())
     vk = get_vk_settings(s)
     s.close()
+    print(f"Returning VK settings: api_key={vk.api_key}, selected_group_id={vk.selected_group_id}")
     return {"api_key": vk.api_key, "selected_group_id": vk.selected_group_id}
 
 

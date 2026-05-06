@@ -34,6 +34,7 @@ async function loadVkSettings() {
         const resp = await fetch('/api/vk/settings');
         if (resp.ok) {
             const data = await resp.json();
+            console.log('VK settings loaded:', data);
             vkApiKey.value = data.api_key || '';
             vkGroupId.value = data.selected_group_id || '';
             if (data.selected_group_id) {
@@ -61,6 +62,7 @@ saveVkBtn.addEventListener('click', async () => {
     }
 
     try {
+        console.log('Saving VK settings:', { api_key, selected_group_id });
         const resp = await fetch('/api/vk/settings', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
