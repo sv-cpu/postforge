@@ -10,7 +10,7 @@ from database import init_db, SessionLocal, get_settings, get_vk_settings, Saved
 from services.parser import parse_url
 from services.openrouter import generate_post
 from services.vk import (
-    get_user_groups, post_to_wall,
+    post_to_wall,
 )
 
 BASE_DIR = Path(__file__).resolve().parent
