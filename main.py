@@ -10,7 +10,7 @@ from database import init_db, SessionLocal, get_settings, get_vk_settings, Saved
 from services.parser import parse_url
 from services.openrouter import generate_post
 from services.vk import (
-    get_auth_url, exchange_code, get_user_groups, post_to_wall,
+    get_user_groups, post_to_wall,
 )
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -180,50 +180,12 @@ async def api_settings_update(request: Request):
 # --- VK API ---
 
 
-@app.get("/api/vk/auth-url")
-async def vk_auth_url():
-    s = next(db_session())
-    vk = get_vk_settings(s)
-    s.close()
-    if not vk.client_id:
-        return JSONResponse({"error": "VK Client ID не настроен"}, status_code=400)
-    url = await get_auth_url(vk.client_id)
-    return {"url": url}
-
-
-@app.post("/api/vk/callback")
-async def vk_callback(request: Request):
-    body = await request.json()
-    code = body.get("code", "")
-    s = next(db_session())
-    vk = get_vk_settings(s)
-    if not vk.client_id or not vk.client_secret:
-        s.close()
-        return JSONResponse({"error": "VK App не настроен"}, status_code=400)
-    try:
-        data = await exchange_code(code, vk.client_id, vk.client_secret)
-        vk.access_token = data.get("access_token", "")
-        exp = data.get("expires_in", 0)
-        if exp and exp > 0:
-            from datetime import timedelta
-            vk.token_expires = datetime.now(timezone.utc) + timedelta(seconds=exp)
-        s.commit()
-    except Exception as e:
-        s.close()
-        return JSONResponse({"error": f"Ошибка получения токена: {str(e)}"}, status_code=400)
-    s.close()
-    return {"ok": True}
-
-
 @app.get("/api/vk/groups")
-async def vk_groups():
-    s = next(db_session())
-    vk = get_vk_settings(s)
-    s.close()
-    if not vk.access_token:
-        return JSONResponse({"error": "VK не авторизован"}, status_code=401)
+async def vk_groups(api_key: str = ""):
+    if not api_key:
+        return JSONResponse({"error": "VK API ключ обязателен"}, status_code=400)
     try:
-        groups = await get_user_groups(vk.access_token)
+        groups = await get_user_groups(api_key)
         return [{"id": g["id"], "name": g["name"]} if isinstance(g, dict) else g for g in groups]
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=400)
@@ -235,21 +197,36 @@ async def vk_post(request: Request):
     owner_id = body.get("owner_id")
     message = body.get("message", "")
     link = body.get("link", "")
+    api_key = body.get("api_key", "")
     if not owner_id or not message:
         return JSONResponse({"error": "owner_id и message обязательны"}, status_code=400)
-    s = next(db_session())
-    vk = get_vk_settings(s)
-    s.close()
-    if not vk.access_token:
-        return JSONResponse({"error": "VK не авторизован"}, status_code=401)
+    if not api_key:
+        return JSONResponse({"error": "VK API ключ обязателен"}, status_code=400)
     try:
-        result = await post_to_wall(vk.access_token, owner_id, message, link)
+        result = await post_to_wall(api_key, owner_id, message, link)
         return {"ok": True, "post_id": result.get("post_id")}
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=400)
 
 
-@app.get("/vk-callback", response_class=HTMLResponse)
-async def vk_callback_page(request: Request):
-    return render("vk_callback.html")
+@app.put("/api/vk/settings")
+async def vk_settings_update(request: Request):
+    body = await request.json()
+    s = next(db_session())
+    vk = get_vk_settings(s)
+    if "api_key" in body:
+        vk.api_key = body["api_key"]
+    if "selected_group_id" in body:
+        vk.selected_group_id = str(body["selected_group_id"])
+    s.commit()
+    s.close()
+    return {"ok": True}
+
+
+@app.get("/api/vk/settings")
+async def vk_settings_get():
+    s = next(db_session())
+    vk = get_vk_settings(s)
+    s.close()
+    return {"api_key": vk.api_key, "selected_group_id": vk.selected_group_id}
 

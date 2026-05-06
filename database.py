@@ -33,10 +33,8 @@ class VKSettings(Base):
     __tablename__ = "vk_settings"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    client_id = Column(String(128), default="")
-    client_secret = Column(String(256), default="")
-    access_token = Column(String(512), default="")
-    token_expires = Column(DateTime, nullable=True)
+    api_key = Column(String(512), default="")
+    selected_group_id = Column(String(128), default="")
 
 
 def init_db():

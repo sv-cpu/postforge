@@ -114,15 +114,60 @@ saveBtn.addEventListener('click', async () => {
 
 const vkPostBtn = document.getElementById('vk-post-btn');
 
+let vkApiKey = '';
+let vkSelectedGroupId = '';
+
+async function loadVkSettings() {
+    try {
+        const resp = await fetch('/api/vk/settings');
+        if (resp.ok) {
+            const data = await resp.json();
+            vkApiKey = data.api_key || '';
+            vkSelectedGroupId = data.selected_group_id || '';
+        }
+    } catch { /* ignore */ }
+}
+
 vkPostBtn.addEventListener('click', async () => {
     if (!currentPost) return;
+    if (!vkApiKey) {
+        showToast('Введите VK API ключ в настройках');
+        return;
+    }
+    if (!vkSelectedGroupId) {
+        showToast('Выберите сообщество в настройках');
+        return;
+    }
+    const btn = vkPostBtn;
+    btn.disabled = true;
+    btn.textContent = 'Публикация...';
+
     try {
-        const resp = await fetch('/api/vk/groups');
-        if (!resp.ok) {
+        const resp = await fetch('/api/vk/post', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                owner_id: -Math.abs(vkSelectedGroupId),
+                message: currentPost,
+                link: currentUrl,
+                api_key: vkApiKey,
+            }),
+        });
+        if (resp.ok) {
+            showToast('Опубликовано в ВК!');
+        } else {
             const data = await resp.json();
-            showToast(data.error || 'ВК не подключен');
-            return;
+            showToast(data.error || 'Ошибка публикации');
         }
+    } catch {
+        showToast('Ошибка публикации');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '📢 ВКонтакте';
+    }
+});
+
+loadVkSettings();
         const groups = await resp.json();
         if (!groups.length) {
             showToast('Нет доступных сообществ');
