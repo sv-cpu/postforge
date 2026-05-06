@@ -4,8 +4,7 @@ from datetime import datetime, timezone
 
 from config import DATABASE_URL
 
-sync_url = DATABASE_URL.replace("sqlite+aiosqlite://", "sqlite://")
-engine = create_engine(sync_url, echo=False)
+engine = create_engine(DATABASE_URL, echo=False)
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
@@ -38,7 +37,6 @@ class VKSettings(Base):
 
 
 def init_db():
-    Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     session = SessionLocal()
     try:
