@@ -56,6 +56,8 @@ saveVkBtn.addEventListener('click', async () => {
     const api_key = vkApiKey.value.trim();
     const selected_group_id = vkGroupId.value.trim();
 
+    console.log('Save VK clicked:', { api_key, selected_group_id });
+
     if (!api_key) {
         showToast('Введите VK API ключ');
         return;
@@ -66,22 +68,27 @@ saveVkBtn.addEventListener('click', async () => {
     }
 
     try {
-        console.log('Saving VK settings:', { api_key, selected_group_id });
+        const payload = { api_key: api_key, selected_group_id: selected_group_id };
+        console.log('Sending payload:', payload);
         const resp = await fetch('/api/vk/settings', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ api_key, selected_group_id }),
+            body: JSON.stringify(payload),
         });
+
+        console.log('Response status:', resp.status);
+        const respData = await resp.json();
+        console.log('Response body:', respData);
 
         if (resp.ok) {
             showToast('Настройки VK сохранены');
             loadVkSettings();
         } else {
-            const data = await resp.json();
-            showToast(data.error || 'Ошибка сохранения VK');
+            showToast(respData.error || 'Ошибка сохранения VK');
         }
-    } catch {
-        showToast('Ошибка сохранения VK');
+    } catch (e) {
+        console.error('Save VK error:', e);
+        showToast('Ошибка сохранения VK: ' + e.message);
     }
 });
 
