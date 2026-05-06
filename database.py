@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 from datetime import datetime, timezone
 
@@ -38,6 +38,8 @@ class VKSettings(Base):
 
 def init_db():
     Base.metadata.create_all(engine)
+    # Migration: add selected_group_id column if not exists
+    _migrate_db()
     session = SessionLocal()
     try:
         settings = session.get(Settings, 1)
@@ -46,6 +48,18 @@ def init_db():
             session.commit()
     finally:
         session.close()
+
+
+def _migrate_db():
+    """Add missing columns to existing tables"""
+    with engine.connect() as conn:
+        # Check if vk_settings.selected_group_id exists
+        try:
+            conn.execute(text("ALTER TABLE vk_settings ADD COLUMN selected_group_id VARCHAR(128) DEFAULT ''"))
+            conn.commit()
+            print("Migration: added selected_group_id to vk_settings")
+        except Exception:
+            pass  # Column already exists
 
 
 def get_settings(session) -> Settings:
