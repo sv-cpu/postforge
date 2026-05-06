@@ -38,6 +38,7 @@ class VKSettings(Base):
 
 
 def init_db():
+    Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     session = SessionLocal()
     try:
