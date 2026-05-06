@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="settings-page">
-    <div class="page-header" style="padding: 0 0 20px 0; border: none;">
+    <div class="page-header" style="padding:0 0 20px 0; border: none;">
         <h1>⚙ Настройки</h1>
     </div>
 
@@ -38,17 +38,15 @@
         </small>
     </div>
 
-    <div id="vk-status" style="margin-bottom:16px; font-size:14px;"></div>
-
     <div class="settings-group">
-        <label for="vk-group-select">Сообщество для публикации</label>
-        <div style="display:flex; gap:8px; align-items:center;">
-            <select id="vk-group-select" class="form-select" style="flex:1;">
-                <option value="">— Выберите сообщество —</option>
-            </select>
-            <button id="vk-fetch-groups-btn" class="btn btn-secondary btn-sm">🔄 Получить</button>
-        </div>
+        <label for="vk-group-id">ID сообщества (Owner ID)</label>
+        <input id="vk-group-id" class="form-input" type="text" placeholder="-12345678">
+        <small style="color:var(--text-muted); font-size:12px; margin-top:4px; display:block;">
+            Отрицательное число. Например: -12345678
+        </small>
     </div>
+
+    <div id="vk-status" style="margin-bottom:16px; font-size:14px;"></div>
 
     <div class="btn-group">
         <button id="save-vk-btn" class="btn btn-primary">💾 Сохранить VK</button>

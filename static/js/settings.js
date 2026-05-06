@@ -4,8 +4,7 @@ const modelSelect = document.getElementById('model-select');
 
 const saveVkBtn = document.getElementById('save-vk-btn');
 const vkApiKey = document.getElementById('vk-api-key');
-const vkGroupSelect = document.getElementById('vk-group-select');
-const vkFetchGroupsBtn = document.getElementById('vk-fetch-groups-btn');
+const vkGroupId = document.getElementById('vk-group-id');
 const vkStatus = document.getElementById('vk-status');
 
 saveBtn.addEventListener('click', async () => {
@@ -36,6 +35,7 @@ async function loadVkSettings() {
         if (resp.ok) {
             const data = await resp.json();
             vkApiKey.value = data.api_key || '';
+            vkGroupId.value = data.selected_group_id || '';
             if (data.selected_group_id) {
                 vkStatus.innerHTML = '✅ <span style="color:var(--accent);">Сообщество выбрано</span>';
             } else {
@@ -47,47 +47,16 @@ async function loadVkSettings() {
     }
 }
 
-vkFetchGroupsBtn.addEventListener('click', async () => {
-    const apiKey = vkApiKey.value.trim();
-    if (!apiKey) {
-        showToast('Введите VK API ключ');
-        return;
-    }
-
-    vkFetchGroupsBtn.disabled = true;
-    vkFetchGroupsBtn.textContent = 'Загрузка...';
-
-    try {
-        const resp = await fetch(`/api/vk/groups?api_key=${encodeURIComponent(apiKey)}`);
-        if (!resp.ok) {
-            const data = await resp.json();
-            showToast(data.error || 'Ошибка получения групп');
-            return;
-        }
-        const groups = await resp.json();
-        vkGroupSelect.innerHTML = '<option value="">— Выберите сообщество —</option>';
-        groups.forEach(g => {
-            const opt = document.createElement('option');
-            opt.value = g.id;
-            opt.textContent = `${g.name} (ID: ${g.id})`;
-            vkGroupSelect.appendChild(opt);
-        });
-        showToast(`Найдено сообществ: ${groups.length}`);
-        vkStatus.innerHTML = '✅ <span style="color:var(--accent);">Группы загружены</span>';
-    } catch {
-        showToast('Ошибка получения групп');
-    } finally {
-        vkFetchGroupsBtn.disabled = false;
-        vkFetchGroupsBtn.textContent = '🔄 Получить';
-    }
-});
-
 saveVkBtn.addEventListener('click', async () => {
     const api_key = vkApiKey.value.trim();
-    const selected_group_id = vkGroupSelect.value;
+    const selected_group_id = vkGroupId.value.trim();
 
     if (!api_key) {
         showToast('Введите VK API ключ');
+        return;
+    }
+    if (!selected_group_id) {
+        showToast('Введите ID сообщества');
         return;
     }
 

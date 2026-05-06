@@ -180,35 +180,6 @@ async def api_settings_update(request: Request):
 # --- VK API ---
 
 
-@app.get("/api/vk/groups")
-async def vk_groups(api_key: str = ""):
-    if not api_key:
-        return JSONResponse({"error": "VK API ключ обязателен"}, status_code=400)
-    try:
-        groups = await get_user_groups(api_key)
-        return [{"id": g["id"], "name": g["name"]} if isinstance(g, dict) else g for g in groups]
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=400)
-
-
-@app.post("/api/vk/post")
-async def vk_post(request: Request):
-    body = await request.json()
-    owner_id = body.get("owner_id")
-    message = body.get("message", "")
-    link = body.get("link", "")
-    api_key = body.get("api_key", "")
-    if not owner_id or not message:
-        return JSONResponse({"error": "owner_id и message обязательны"}, status_code=400)
-    if not api_key:
-        return JSONResponse({"error": "VK API ключ обязателен"}, status_code=400)
-    try:
-        result = await post_to_wall(api_key, owner_id, message, link)
-        return {"ok": True, "post_id": result.get("post_id")}
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=400)
-
-
 @app.put("/api/vk/settings")
 async def vk_settings_update(request: Request):
     body = await request.json()
@@ -229,4 +200,22 @@ async def vk_settings_get():
     vk = get_vk_settings(s)
     s.close()
     return {"api_key": vk.api_key, "selected_group_id": vk.selected_group_id}
+
+
+@app.post("/api/vk/post")
+async def vk_post(request: Request):
+    body = await request.json()
+    owner_id = body.get("owner_id")
+    message = body.get("message", "")
+    link = body.get("link", "")
+    api_key = body.get("api_key", "")
+    if not owner_id or not message:
+        return JSONResponse({"error": "owner_id и message обязательны"}, status_code=400)
+    if not api_key:
+        return JSONResponse({"error": "VK API ключ обязателен"}, status_code=400)
+    try:
+        result = await post_to_wall(api_key, owner_id, message, link)
+        return {"ok": True, "post_id": result.get("post_id")}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
 
