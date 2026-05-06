@@ -182,17 +182,23 @@ async def api_settings_update(request: Request):
 
 @app.put("/api/vk/settings")
 async def vk_settings_update(request: Request):
+    print("=== VK SETTINGS UPDATE CALLED ===")
     body = await request.json()
+    print(f"Request body: {body}")
     s = next(db_session())
     vk = get_vk_settings(s)
+    print(f"VK object before: api_key={vk.api_key}, selected_group_id={vk.selected_group_id}")
     if "api_key" in body:
         vk.api_key = body["api_key"]
+        print(f"Updated api_key: {vk.api_key}")
     if "selected_group_id" in body:
         vk.selected_group_id = str(body["selected_group_id"])
-        print(f"Saving selected_group_id: {vk.selected_group_id}")
+        print(f"Updated selected_group_id: {vk.selected_group_id}")
     s.commit()
+    print(f"After commit: api_key={vk.api_key}, selected_group_id={vk.selected_group_id}")
     s.close()
     return {"ok": True}
+
 
 
 @app.get("/api/vk/settings")
